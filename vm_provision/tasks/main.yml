@@ -1,0 +1,50 @@
+---
+- name: Ensure requirements are met
+  package: 
+    name:
+      - guestfs-tools
+      - python3-libvirt
+    state: present
+  become: yes
+
+- name: Get VMs list
+  community.libvirt.virt:
+    command: "list_vms"
+  register: existing_vms
+  changed_when: no
+  become: yes
+
+- name: Create a VM if it doesn't exists
+  get_url:
+    url: "{{ base_image_url }}"
+    dest: "/tmp/{{ base_image_name }}"
+
+- name: Copy base image to libvirt dir
+  copy:
+    dest: "{{ libvirt_pool_dir }}/{{ vm_name }}.qcow2"
+    src: "/tmp/{{ base_image_name }}"
+    force: no
+    remote_src: yes
+    mode: 0660
+  register: copy_results
+
+- name: Configure the image
+  command: |
+      virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+      --hostname {{ vm_name }} \
+      --root-password password:{{ vm_root_pass }} \
+      --ssh-inject 'root:file:{{ ssh_key }}' \
+      --uninstall cloud-init --selinux-relabel
+  when: copy_results is changed
+
+- name: "Define VM"
+  community.libvirt.virt:
+    command: "define"
+    xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
+  become: yes
+
+- name: Ensure temporary file is deleted
+  file:
+    path: "/tmp/{{ base_image_name }}"
+    state: absent
+  when: cleanup_tmp | bool

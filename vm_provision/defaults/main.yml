@@ -1,0 +1,12 @@
+---
+# defaults file for vm_provision
+base_image_name: debian-11-generic-amd64.qcow2
+base_image_url: https://cloud.debian.org/images/cloud/bullseye/latest/{{ base_image_name }}
+libvirt_pool_dir: "/var/lib/libvirt/images"
+vm_name: debian11-temp
+vm_vcpus: 2
+vm_ram_mb: 2048
+vm_net: default
+vm_root_pass: rootpass123
+cleanup_tmp: no
+ssh_key: /home/user/.ssh/id_rsa.pub
